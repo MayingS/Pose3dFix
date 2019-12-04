@@ -40,7 +40,7 @@ MODEL_EXTRAS = {
 # common params for NETWORK
 config.MODEL = edict()
 config.MODEL.NAME = 'pose3d_resnet'
-config.MODEL.INIT_WEIGHTS = True
+config.MODEL.INIT_WEIGHTS = False
 config.MODEL.PRETRAINED = ''
 config.MODEL.RESUME = ''
 config.MODEL.NUM_JOINTS = 17
