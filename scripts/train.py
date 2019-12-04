@@ -81,6 +81,7 @@ def main():
     torch.backends.cudnn.enabled = config.CUDNN.ENABLED
 
     model = models.pose3d_resnet.get_pose_net(config, is_train=True)
+    logger.info('Model ===> {}'.format(model))
 
     # copy model file
     this_dir = os.path.dirname(__file__)

@@ -20,7 +20,7 @@ DATASET:
   OCCLUSION: true
   BG_AUG: false
   NUM_CAMS: 4
-  VOC: 'data/VOC2012' # If you want to use synthetic occlusion, please enter the VOC path
+  VOC: '/media/sdb/mayings/dataset/VOCdevkit/VOC2012' # If you want to use synthetic occlusion, please enter the VOC path
 MODEL:
   NAME: pose3d_resnet
   PRETRAINED: 'models/mpii_integral/model_best.pth.tar'
@@ -43,10 +43,10 @@ MODEL:
 LOSS:
   FN: SmoothL1JointLocationLoss
 TRAIN:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 16
   SHUFFLE: true
   BEGIN_EPOCH: 0
-  END_EPOCH: 140
+  END_EPOCH: 1500
   RESUME: false
   OPTIMIZER: adam
   LR: 0.001

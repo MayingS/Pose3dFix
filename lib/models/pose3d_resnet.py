@@ -96,7 +96,7 @@ class PoseResNet(nn.Module):
         self.deconv_with_bias = extra.DECONV_WITH_BIAS
         self.volume = cfg.MODEL.VOLUME
         super(PoseResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(21, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
         self.relu = nn.ReLU(inplace=True)
@@ -182,7 +182,8 @@ class PoseResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x1, x2):
+        x = torch.cat((x1, x2), 1)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

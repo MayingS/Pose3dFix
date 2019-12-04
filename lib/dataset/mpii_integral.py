@@ -28,7 +28,7 @@ class MPIIDataset(JointsIntegralDataset):
     def __getitem__(self, idx):
         the_db = copy.deepcopy(self.db[idx])
 
-        img_patch, label, label_weight, _, _ = get_single_patch_sample(the_db['image'], the_db['center_x'],
+        img_patch, label, label_weight, heatmap, _, _ = get_single_patch_sample(the_db['image'], the_db['center_x'],
                                                                        the_db['center_y'], the_db['width'],
                                                                        the_db['height'], the_db['joints_3d'].copy(),
                                                                        the_db['joints_3d_vis'].copy(),
@@ -43,7 +43,7 @@ class MPIIDataset(JointsIntegralDataset):
             'image': the_db['image'],
         }
 
-        return img_patch.astype(np.float32), label.astype(np.float32), label_weight.astype(np.float32), meta
+        return img_patch.astype(np.float32), label.astype(np.float32), label_weight.astype(np.float32), heatmap.astype(np.float32), meta
 
     def _get_db(self):
         # create train/val split

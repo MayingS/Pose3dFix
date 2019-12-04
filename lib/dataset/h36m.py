@@ -60,7 +60,7 @@ class H36M_Integral(JointsIntegralDataset):
         joints_vis = the_db['joints_3d_vis'].copy()
         joints_vis[:,2] *= self.cfg.DATASET.Z_WEIGHT
 
-        img_patch, label, label_weight, scale, rot = get_single_patch_sample(image_file, the_db['center_x'],
+        img_patch, label, label_weight, heatmap, scale, rot = get_single_patch_sample(image_file, the_db['center_x'],
                                                                  the_db['center_y'], the_db['width'],
                                                                  the_db['height'], the_db['joints_3d'].copy(),
                                                                  joints_vis,
@@ -69,7 +69,6 @@ class H36M_Integral(JointsIntegralDataset):
                                                                  self.rect_3d_width, self.rect_3d_height,
                                                                  self.mean, self.std, self.is_train, self.label_func,
                                                                  occluder=self.occluders, DEBUG=self.cfg.DEBUG.DEBUG)
-
         meta = {
             'image'   : image_file,
             'center_x': the_db['center_x'],
@@ -85,7 +84,7 @@ class H36M_Integral(JointsIntegralDataset):
             'projection_matrix': cam.projection_matrix
         }
 
-        return img_patch.astype(np.float32), label.astype(np.float32), label_weight.astype(np.float32), meta
+        return img_patch.astype(np.float32), label.astype(np.float32), label_weight.astype(np.float32), heatmap.astype(np.float32), meta
 
 
     def _get_train_db(self):
@@ -103,6 +102,9 @@ class H36M_Integral(JointsIntegralDataset):
             for idx in rnd_subset:
                 for cid in range(self.num_cams):
                     a = anno[cid+1][idx]
+                    image_file = os.path.join(self.root, a['image'])
+                    if not os.path.exists(image_file):
+                        continue
                     gt_db[cid].append(a)
 
             self.db_length = len(gt_db[0])
@@ -122,6 +124,9 @@ class H36M_Integral(JointsIntegralDataset):
 
             for idx in range(len(anno)):
                 a = anno[idx]
+                image_file = os.path.join(self.root, a['image'])
+                if not os.path.exists(image_file):
+                    continue
                 gt_db.append(a)
 
             # Shuffle the dataset

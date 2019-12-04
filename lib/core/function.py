@@ -24,17 +24,18 @@ def train_integral(config, train_loader, model, criterion, optimizer, epoch):
         # measure data loading time
         data_time.update(time.time() - end)
 
-        batch_data, batch_label, batch_label_weight, meta = data
+        batch_data, batch_label, batch_label_weight, batch_heatmap, meta = data
 
         optimizer.zero_grad()
 
         batch_data = batch_data.cuda()
         batch_label = batch_label.cuda()
+        batch_heatmap = batch_heatmap.cuda()
         batch_label_weight = batch_label_weight.cuda()
 
         batch_size = batch_data.size(0)
         # compute output
-        preds = model(batch_data)
+        preds = model(batch_data, batch_heatmap)
 
         loss = criterion(preds, batch_label, batch_label_weight)
         del batch_data, batch_label, batch_label_weight, preds
@@ -73,14 +74,15 @@ def validate_integral(val_loader, model):
     preds_in_patch_with_score = []
     with torch.no_grad():
         for i, data in enumerate(val_loader):
-            batch_data, batch_label, batch_label_weight, meta = data
+            batch_data, batch_label, batch_label_weight, batch_heatmap, meta = data
 
             batch_data = batch_data.cuda()
             batch_label = batch_label.cuda()
+            batch_heatmap = batch_heatmap.cuda()
             batch_label_weight = batch_label_weight.cuda()
 
             # compute output
-            preds = model(batch_data)
+            preds = model(batch_data, batch_heatmap)
             del batch_data, batch_label, batch_label_weight
 
 

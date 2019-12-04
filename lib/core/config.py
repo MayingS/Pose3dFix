@@ -82,7 +82,7 @@ config.DATASET.SCALE_FACTOR = 0.25
 config.DATASET.ROT_FACTOR = 30
 config.DATASET.OCCLUSION = False # Assign True if you want to use occlusion augmentation proposed by
 								# Sarandi et al. in https://arxiv.org/abs/1808.09316
-config.DATASET.VOC = '/media/muhammed/Other/RESEARCH/datasets/VOCdevkit/VOC2012' # path to PASCAL VOC2012 dataset
+config.DATASET.VOC = '/media/sdb/mayings/dataset/VOCdevkit/VOC2012' # path to PASCAL VOC2012 dataset
 config.DATASET.BG_AUG = False
 config.DATASET.Z_WEIGHT = 1. # weighting parameter for z axis
 

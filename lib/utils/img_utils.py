@@ -13,6 +13,7 @@ from lib.utils.prep_h36m import from_worldjt_to_imagejt
 import random
 import numpy as np
 from easydict import EasyDict as edict
+import math
 
 def get_default_augment_config():
     config = edict()
@@ -247,6 +248,7 @@ def get_single_patch_sample(img_path, center_x, center_y, width, height,
                             joints, joints_vis, flip_pairs, parent_ids,
                             patch_width, patch_height, rect_3d_width, rect_3d_height, mean, std,
                             do_augment, label_func, depth_in_image=False, occluder=None, DEBUG=False):
+    ori_joints = np.copy(joints)
     # 1. load image
     cvimg = cv2.imread(
         img_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -292,10 +294,95 @@ def get_single_patch_sample(img_path, center_x, center_y, width, height,
         else:
             joints[n_jt, 2] = joints[n_jt, 2] / (rect_3d_width * scale) * patch_width
 
+    # add. add jitter error
+    jitter_joints = np.copy(ori_joints)
+    jitter_joints = add_jitter_error(jitter_joints, joints_vis)
+    if do_flip:
+        jitter_joints, joints_vis = fliplr_joints(jitter_joints, joints_vis, img_width, flip_pairs)
+    for n_jt in range(len(jitter_joints)):
+        jitter_joints[n_jt, 0:2] = trans_point2d(jitter_joints[n_jt, 0:2], trans)
+        if depth_in_image:
+            jitter_joints[n_jt, 2] = jitter_joints[n_jt, 2] / (width * scale) * patch_width
+        else:
+            jitter_joints[n_jt, 2] = jitter_joints[n_jt, 2] / (rect_3d_width * scale) * patch_width
+
+    # get heatmap for jitter joints
+
     # 5. get label of some type according to certain need
     label, label_weight = label_func(patch_width, patch_height, joints, joints_vis)
+    heatmap = render_3d_gaussian_heatmap(jitter_joints, image.shape, sigma=5.0)
+    # print(heatmap.shape)
 
-    return img_patch, label, label_weight, scale, rot
+    return img_patch, label, label_weight, heatmap, scale, rot
+
+
+def add_jitter_error(joints, joints_vis):
+    num_valid_joint = np.sum(np.sum(joints_vis, axis=1) == 2.)
+    N = 500
+    coord_list = np.copy(joints)
+    for j in range(joints.shape[0]):
+        synth_jitter = np.zeros(3)
+        if num_valid_joint <= 10:
+            if j in [2,3,5,6,9,10]:  # nose: 9; ankle:3,6; knee: 2,5; head: 10
+                jitter_prob = 0.15
+            elif (7 <= j <= 8) or (11 <= j <= 16):  # upper body
+                jitter_prob = 0.20
+            else:
+                jitter_prob = 0.25  # hip, pelvis
+        else:
+            if j in [2,3,5,6,9,10]:  # nose: 9; ankle:3,6; knee: 2,5; head: 10
+                jitter_prob = 0.10
+            elif (7 <= j <= 8) or (11 <= j <= 16):  # upper body
+                jitter_prob = 0.15
+            else:
+                jitter_prob = 0.20  # hip, pelvis
+
+        dx = np.random.uniform(-20, 20, [N])
+        dy = np.random.uniform(-20, 20, [N])
+        dz = np.random.uniform(-10, 10, [N])
+        x = coord_list[j, 0] + dx
+        y = coord_list[j, 1] + dy
+        z = coord_list[j, 2] + dz
+
+        if len(x) > 0:
+            rand_idx = random.randrange(0, len(x))
+            synth_jitter[0] = x[rand_idx]
+            synth_jitter[1] = y[rand_idx]
+            synth_jitter[2] = z[rand_idx]
+
+        prob = np.random.uniform()
+        if prob < jitter_prob:
+            joints[j] = synth_jitter
+    return joints
+
+
+def render_3d_gaussian_heatmap(coord, output_shape, sigma, valid=None):
+    x = [i for i in range(output_shape[1])]
+    y = [i for i in range(output_shape[0])]
+    xx, yy = np.meshgrid(x, y)
+    xx = np.expand_dims(xx, axis=0)
+    yy = np.expand_dims(yy, axis=0)
+
+    x = coord[:, 0]
+    x = np.reshape(x, [x.shape[0], 1, 1])
+    y = coord[:, 1]
+    y = np.reshape(y, [y.shape[0], 1, 1])
+    z = coord[:, 2]
+
+    heatmap = np.exp(-(((xx - x) / sigma) ** 2) / 2 - (((yy - y) / sigma) ** 2) / 2)
+
+    heatmap_weighted = np.copy(heatmap)
+    depth_scale = z / output_shape[1] + 0.5
+    for i in range(heatmap_weighted.shape[0]):
+        heatmap_weighted[i] *= depth_scale[i]
+    heatmap_weighted = np.max(heatmap_weighted, axis=0, keepdims=True)
+    heatmap = np.concatenate((heatmap, heatmap_weighted), axis=0)
+
+    # if valid is not None:
+    #     valid_mask = tf.reshape(valid, [-1, 1, 1, cfg.num_kps])
+    #     heatmap = heatmap * valid_mask
+
+    return heatmap * 255.
 
 
 def multi_meshgrid(*args):
